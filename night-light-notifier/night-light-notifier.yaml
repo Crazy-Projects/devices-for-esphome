@@ -28,7 +28,7 @@ ota:
 
 # This should point to the public location of this yaml file.
 dashboard_import:
-  package_import_url: github://esphome/esphome-project-template/project-template-esp32.yaml@v6
+  package_import_url: github://Crazy-Projects/devices-for-esphome/night-light-notifier/night-light-notifier.yaml
 
 wifi:
   # Set up a wifi access point
