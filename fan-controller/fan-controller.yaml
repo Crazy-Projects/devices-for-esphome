@@ -1,0 +1,112 @@
+substitutions:
+  name: "fan-controller"
+
+esphome:
+  name: "${name}"
+  name_add_mac_suffix: true
+  project:
+    name: esphome.fan-controller
+    version: "1.0"
+  on_boot:
+    priority: -100
+    then:
+      - climate.control:
+          id: fan_thermostat
+          target_temperature: !lambda "return id(setpoint).state;"
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+dashboard_import:
+  package_import_url: github://Crazy-Projects/devices-for-esphome/fan-controller/fan-controller.yaml
+
+wifi:
+  ap:
+    password: "12345678"
+
+improv_serial:
+
+captive_portal:
+
+web_server:
+  port: 80
+
+switch:
+  - platform: gpio
+    pin: GPIO12
+    name: "Ventilador"
+    id: output
+
+binary_sensor:
+  - platform: gpio
+    pin: GPIO0
+    id: button
+    internal: true
+    on_press:
+      then:
+        - switch.toggle: output
+
+dallas:
+  - pin: GPIO14
+
+sensor:
+  - platform: dallas
+    address: 0xa8b31a871e64ff28
+    name: "Temperatura Interior"
+    id: interior
+  - platform: dallas
+    address: 0x5c1f209e4445ff28
+    name: "Temperatura Exterior"
+    id: exterior
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return x <= id(setpoint).state;'
+            then:
+              - logger.log: "under 30"
+              - climate.control:
+                  id: fan_thermostat
+                  target_temperature: !lambda "return id(setpoint).state;"
+            else:
+              - logger.log: "above 30"
+              - climate.control:
+                  id: fan_thermostat
+                  target_temperature: !lambda "return x;"
+
+number:
+  - platform: template
+    name: "setpoint"
+    id: setpoint
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    restore_value: true
+    initial_value: 30
+    step: 1
+
+climate:
+  - platform: thermostat
+    name: "Thermostat Climate Controller"
+    id: fan_thermostat
+    sensor: interior
+    default_target_temperature_high: 30 °C
+    min_cooling_off_time: 15s
+    min_cooling_run_time: 15s
+    min_idle_time: 15s
+    cool_action:
+      - switch.turn_on: output
+    idle_action:
+      - switch.turn_off: output
+    visual:
+      min_temperature: 0 °C
+      max_temperature: 100 °C
+      temperature_step: 1 °C
